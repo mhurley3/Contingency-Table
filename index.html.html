@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Contingency Table &amp; Probability Explorer</title>
+  <style>
+    /* Design Tokens & CSS Custom Properties */
+    :root {
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --bg-highlight: #e0f2fe;
+      --bg-highlight-border: #0284c7;
+
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-light: #475569;
+
+      --border-color: #cbd5e1;
+      --border-focus: #0284c7;
+
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --primary-text: #ffffff;
+
+      --secondary: #475569;
+      --secondary-hover: #334155;
+
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+
+      --success-bg: #f0fdf4;
+      --success-border: #16a34a;
+      --success-text: #14532d;
+
+      --error-bg: #fef2f2;
+      --error-border: #dc2626;
+      --error-text: #7f1d1d;
+
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --focus-ring: 3px solid #0284c7;
+      --focus-offset: 3px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --bg-subtle: #334155;
+        --bg-highlight: #075985;
+        --bg-highlight-border: #38bdf8;
+
+        --text-main: #f8fafc;
+        --text-muted: #cbd5e1;
+        --text-light: #94a3b8;
+
+        --border-color: #475569;
+        --border-focus: #38bdf8;
+
+        --primary: #0284c7;
+        --primary-hover: #38bdf8;
+        --primary-text: #ffffff;
+
+        --secondary: #64748b;
+        --secondary-hover: #475569;
+
+        --danger: #ef4444;
+        --danger-hover: #f87171;
+
+        --success-bg: #052e16;
+        --success-border: #22c55e;
+        --success-text: #dcfce7;
+
+        --error-bg: #450a0a;
+        --error-border: #ef4444;
+        --error-text: #fee2e2;
+
+        --focus-ring: 3px solid #38bdf8;
+      }
+    }
+
+    /* Reset & Base Styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      line-height: 1.6;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 1.5rem 1rem;
+      min-height: 100vh;
+    }
+
+    *:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: var(--focus-offset);
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 10px;
+      background: var(--primary);
+      color: var(--primary-text);
+      padding: 8px 16px;
+      z-index: 100;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: top 0.2s;
+    }
+
+    .skip-link:focus {
+      top: 10px;
+    }
+
+    header, main, footer {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .intro-text {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    @media (min-width: 960px) {
+      .app-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .card h2 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+
+    .instructions {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-main);
+    }
+
+    .help-text {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      font-size: 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.6rem 1rem;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--primary-text);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-subtle);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--border-color);
+    }
+
+    .btn-small {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.85rem;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+
+    table.contingency-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+
+    table.contingency-table th, 
+    table.contingency-table td {
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      min-width: 75px;
+    }
+
+    table.contingency-table th {
+      background-color: var(--bg-subtle);
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    table.contingency-table td.cell-total {
+      background-color: var(--bg-subtle);
+      font-weight: 600;
+    }
+
+    table.contingency-table input {
+      text-align: center;
+      width: 100%;
+    }
+
+    td.highlight-cell {
+      background-color: var(--bg-highlight) !important;
+      border: 2px solid var(--bg-highlight-border) !important;
+    }
+
+    .dimension-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      background-color: var(--bg-subtle);
+      padding: 0.75rem;
+      border-radius: 6px;
+    }
+
+    .results-panel {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-radius: 6px;
+      background-color: var(--bg-subtle);
+      border-left: 4px solid var(--primary);
+    }
+
+    .results-panel h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .formula-display {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 1.05rem;
+      background-color: var(--bg-card);
+      padding: 0.75rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      margin: 0.75rem 0;
+      overflow-x: auto;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .alert-error {
+      background-color: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .category-manager {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .category-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-light);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <header role="banner">
+    <h1>Dynamic Contingency Table &amp; Probability Explorer</h1>
+    <p class="intro-text">Customize table dimensions, variables, and categories to compute marginal, joint, union, complement, and conditional probabilities dynamically.</p>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <!-- Live Region for Accessibility Announcements -->
+    <div id="aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="app-grid">
+      <!-- COLUMN 1: Setup & Editable Contingency Table -->
+      <section class="card" aria-labelledby="table-setup-heading">
+        <h2 id="table-setup-heading">1. Table Dimensions &amp; Data Entry</h2>
+        
+        <p class="instructions">Select sample data or adjust table dimensions, variables, category labels, and cell values.</p>
+
+        <!-- Datasets Preset Buttons -->
+        <div class="form-group">
+          <label id="preset-label">Preset Datasets:</label>
+          <div class="btn-group" role="group" aria-labelledby="preset-label">
+            <button type="button" class="btn-secondary btn-small" id="btn-preset-2x2">2x2 Medical Test</button>
+            <button type="button" class="btn-secondary btn-small" id="btn-preset-3x3">3x3 Student Survey</button>
+            <button type="button" class="btn-secondary btn-small" id="btn-reset">Reset / Clear Table</button>
+          </div>
+        </div>
+
+        <!-- Dimension Selectors -->
+        <div class="dimension-controls">
+          <div style="flex: 1;">
+            <label for="row-count-select">Rows:</label>
+            <select id="row-count-select">
+              <option value="2">2 Rows</option>
+              <option value="3">3 Rows</option>
+              <option value="4">4 Rows</option>
+              <option value="5">5 Rows</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label for="col-count-select">Columns:</label>
+            <select id="col-count-select">
+              <option value="2">2 Columns</option>
+              <option value="3">3 Columns</option>
+              <option value="4">4 Columns</option>
+              <option value="5">5 Columns</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Variable & Category Editing -->
+        <details style="margin-bottom: 1.5rem; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px;">
+          <summary style="font-weight: 600; cursor: pointer;">Edit Variable &amp; Category Labels</summary>
+          <div style="margin-top: 1rem;">
+            <div class="form-group">
+              <label for="var-row-name">Row Variable Name (Event A):</label>
+              <input type="text" id="var-row-name" value="Row Variable">
+            </div>
+            <div class="category-manager" id="row-categories-container">
+              <!-- Dynamically populated category inputs -->
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+              <label for="var-col-name">Column Variable Name (Event B):</label>
+              <input type="text" id="var-col-name" value="Column Variable">
+            </div>
+            <div class="category-manager" id="col-categories-container">
+              <!-- Dynamically populated category inputs -->
+            </div>
+          </div>
+        </details>
+
+        <!-- Dynamic Table View -->
+        <div class="table-wrapper">
+          <table class="contingency-table" id="data-table">
+            <caption>Contingency Table with Observed Counts</caption>
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <p class="help-text">Row and column totals update automatically. Counts must be non-negative integers.</p>
+        
+        <div id="validation-error" class="alert alert-error" style="display: none;" role="alert"></div>
+      </section>
+
+      <!-- COLUMN 2: Probability Calculation & Breakdown -->
+      <section class="card" aria-labelledby="prob-calc-heading">
+        <h2 id="prob-calc-heading">2. Interactive Probability Calculator</h2>
+        
+        <p class="instructions">Choose a probability formula to analyze events from your customized table.</p>
+
+        <form id="prob-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="prob-type">Calculation Type:</label>
+            <select id="prob-type">
+              <option value="single">Single Event Probability — P(E)</option>
+              <option value="intersection">Intersection (AND) — P(A ∩ B)</option>
+              <option value="union">Union (OR) — P(A ∪ B)</option>
+              <option value="complement">Complement (NOT) — P(E')</option>
+              <option value="conditional">Conditional Probability — P(A | B)</option>
+            </select>
+          </div>
+
+          <!-- Dynamic Parameter Dropdowns -->
+          <div id="dynamic-selectors"></div>
+        </form>
+
+        <!-- Results & Educational Step-by-Step Breakdown -->
+        <div id="results-container" class="results-panel" style="display: none;" aria-live="polite">
+          <h3 id="result-title">Result</h3>
+          <p id="result-description"></p>
+          
+          <div class="formula-display" id="result-formula"></div>
+
+          <p id="result-calculation"></p>
+          <p id="result-final" style="font-size: 1.25rem; font-weight: bold; margin-top: 0.5rem; color: var(--primary);"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer role="contentinfo">
+    <p>Introductory Statistics Learning Application &bull; Accessibility Compliant (WCAG 2.2 Level AA)</p>
+  </footer>
+
+  <script>
+    // State Management Object
+    const state = {
+      numRows: 2,
+      numCols: 2,
+      rowVar: "Condition",
+      colVar: "Test Result",
+      rowCategories: ["Disease Present", "Disease Absent"],
+      colCategories: ["Test Positive", "Test Negative"],
+      matrix: [
+        [85, 15],
+        [20, 780]
+      ]
+    };
+
+    // DOM Element References
+    const elements = {
+      announcer: document.getElementById('aria-announcer'),
+      rowCountSelect: document.getElementById('row-count-select'),
+      colCountSelect: document.getElementById('col-count-select'),
+      varRowName: document.getElementById('var-row-name'),
+      varColName: document.getElementById('var-col-name'),
+      rowCatContainer: document.getElementById('row-categories-container'),
+      colCatContainer: document.getElementById('col-categories-container'),
+      tableHead: document.getElementById('table-head'),
+      tableBody: document.getElementById('table-body'),
+      probType: document.getElementById('prob-type'),
+      dynamicSelectors: document.getElementById('dynamic-selectors'),
+      validationError: document.getElementById('validation-error'),
+      resultsContainer: document.getElementById('results-container'),
+      resultTitle: document.getElementById('result-title'),
+      resultDescription: document.getElementById('result-description'),
+      resultFormula: document.getElementById('result-formula'),
+      resultCalculation: document.getElementById('result-calculation'),
+      resultFinal: document.getElementById('result-final'),
+      btnPreset2x2: document.getElementById('btn-preset-2x2'),
+      btnPreset3x3: document.getElementById('btn-preset-3x3'),
+      btnReset: document.getElementById('btn-reset')
+    };
+
+    function announce(msg) {
+      elements.announcer.textContent = '';
+      setTimeout(() => { elements.announcer.textContent = msg; }, 50);
+    }
+
+    // Dynamic Matrix Adjuster
+    function resizeMatrix(newRows, newCols) {
+      const newMatrix = [];
+      for (let r = 0; r < newRows; r++) {
+        newMatrix[r] = [];
+        for (let c = 0; c < newCols; c++) {
+          newMatrix[r][c] = (state.matrix[r] && state.matrix[r][c] !== undefined) ? state.matrix[r][c] : 10;
+        }
+      }
+      state.matrix = newMatrix;
+
+      // Adjust Row Category Labels
+      while (state.rowCategories.length < newRows) {
+        state.rowCategories.push(`Row Category ${state.rowCategories.length + 1}`);
+      }
+      state.rowCategories = state.rowCategories.slice(0, newRows);
+
+      // Adjust Column Category Labels
+      while (state.colCategories.length < newCols) {
+        state.colCategories.push(`Col Category ${state.colCategories.length + 1}`);
+      }
+      state.colCategories = state.colCategories.slice(0, newCols);
+
+      state.numRows = newRows;
+      state.numCols = newCols;
+    }
+
+    // Render Editable Category Input Controls
+    function renderCategoryInputs() {
+      // Row Categories
+      elements.rowCatContainer.innerHTML = '';
+      state.rowCategories.forEach((cat, idx) => {
+        const div = document.createElement('div');
+        div.className = 'category-row';
+        div.innerHTML = `
+          <label for="row-cat-input-${idx}" class="sr-only">Row Category ${idx + 1} Name</label>
+          <input type="text" id="row-cat-input-${idx}" value="${cat}" data-type="row" data-index="${idx}">
+        `;
+        elements.rowCatContainer.appendChild(div);
+      });
+
+      // Column Categories
+      elements.colCatContainer.innerHTML = '';
+      state.colCategories.forEach((cat, idx) => {
+        const div = document.createElement('div');
+        div.className = 'category-row';
+        div.innerHTML = `
+          <label for="col-cat-input-${idx}" class="sr-only">Column Category ${idx + 1} Name</label>
+          <input type="text" id="col-cat-input-${idx}" value="${cat}" data-type="col" data-index="${idx}">
+        `;
+        elements.colCatContainer.appendChild(div);
+      });
+
+      // Bind Listeners
+      elements.rowCatContainer.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.index, 10);
+          state.rowCategories[idx] = e.target.value.trim() || `Row ${idx + 1}`;
+          renderTable();
+          renderProbabilitySelectors();
+        });
+      });
+
+      elements.colCatContainer.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.index, 10);
+          state.colCategories[idx] = e.target.value.trim() || `Col ${idx + 1}`;
+          renderTable();
+          renderProbabilitySelectors();
+        });
+      });
+    }
+
+    // Render Full Interactive Contingency Table DOM
+    function renderTable() {
+      // Build Header Row
+      let headHtml = `<tr><th scope="col" id="corner-header">${state.rowVar} \\ ${state.colVar}</th>`;
+      state.colCategories.forEach((colCat, cIdx) => {
+        headHtml += `<th scope="col" id="header-col-${cIdx}">${colCat}</th>`;
+      });
+      headHtml += `<th scope="col" id="header-row-total">Total</th></tr>`;
+      elements.tableHead.innerHTML = headHtml;
+
+      // Build Table Body Rows
+      let bodyHtml = '';
+      const colTotals = new Array(state.numCols).fill(0);
+      let grandTotal = 0;
+
+      for (let r = 0; r < state.numRows; r++) {
+        let rowSum = 0;
+        bodyHtml += `<tr><th scope="row" id="header-row-${r}">${state.rowCategories[r]}</th>`;
+        
+        for (let c = 0; c < state.numCols; c++) {
+          const val = state.matrix[r][c];
+          rowSum += val;
+          colTotals[c] += val;
+          grandTotal += val;
+
+          bodyHtml += `
+            <td id="cell-container-${r}-${c}">
+              <label for="cell-${r}-${c}" class="sr-only">Count for ${state.rowCategories[r]} and ${state.colCategories[c]}</label>
+              <input type="number" id="cell-${r}-${c}" min="0" value="${val}" data-row="${r}" data-col="${c}">
+            </td>
+          `;
+        }
+        bodyHtml += `<td class="cell-total" id="total-row-${r}">${rowSum}</td></tr>`;
+      }
+
+      // Build Summary Total Footer Row
+      bodyHtml += `<tr><th scope="row" id="header-col-total">Total</th>`;
+      colTotals.forEach((cTotal, cIdx) => {
+        bodyHtml += `<td class="cell-total" id="total-col-${cIdx}">${cTotal}</td>`;
+      });
+      bodyHtml += `<td class="cell-total" id="grand-total" style="font-weight:bold; background-color:var(--border-color);">${grandTotal}</td></tr>`;
+
+      elements.tableBody.innerHTML = bodyHtml;
+
+      // Add Change Listeners to Numeric Inputs
+      elements.tableBody.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const r = parseInt(e.target.dataset.row, 10);
+          const c = parseInt(e.target.dataset.col, 10);
+          const val = parseInt(e.target.value, 10);
+
+          if (isNaN(val) || val < 0) {
+            elements.validationError.textContent = "Please enter valid non-negative integer counts.";
+            elements.validationError.style.display = "block";
+          } else {
+            elements.validationError.style.display = "none";
+            state.matrix[r][c] = val;
+            updateTotalsOnly();
+            calculateProbability();
+          }
+        });
+      });
+    }
+
+    // Fast recalculation of cell sums without destroying active input focus
+    function updateTotalsOnly() {
+      const colTotals = new Array(state.numCols).fill(0);
+      let grandTotal = 0;
+
+      for (let r = 0; r < state.numRows; r++) {
+        let rowSum = 0;
+        for (let c = 0; c < state.numCols; c++) {
+          const val = state.matrix[r][c];
+          rowSum += val;
+          colTotals[c] += val;
+          grandTotal += val;
+        }
+        document.getElementById(`total-row-${r}`).textContent = rowSum;
+      }
+
+      colTotals.forEach((cTotal, cIdx) => {
+        document.getElementById(`total-col-${cIdx}`).textContent = cTotal;
+      });
+      document.getElementById('grand-total').textContent = grandTotal;
+    }
+
+    // Render Dynamic Form Controls for Selectors
+    function renderProbabilitySelectors() {
+      const type = elements.probType.value;
+      let html = "";
+
+      // List of all Row & Col events
+      const events = [];
+      state.rowCategories.forEach((cat, idx) => {
+        events.push({ id: `r_${idx}`, name: `${cat} (${state.rowVar})`, type: "row", index: idx });
+      });
+      state.colCategories.forEach((cat, idx) => {
+        events.push({ id: `c_${idx}`, name: `${cat} (${state.colVar})`, type: "col", index: idx });
+      });
+
+      if (type === "single" || type === "complement") {
+        html = `
+          <div class="form-group">
+            <label for="select-event-1">Select Target Event:</label>
+            <select id="select-event-1">
+              ${events.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (type === "intersection" || type === "union") {
+        html = `
+          <div class="form-group">
+            <label for="select-event-row">Select Row Event (A):</label>
+            <select id="select-event-row">
+              ${state.rowCategories.map((rCat, rIdx) => `<option value="r_${rIdx}">${rCat} (${state.rowVar})</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="select-event-col">Select Column Event (B):</label>
+            <select id="select-event-col">
+              ${state.colCategories.map((cCat, cIdx) => `<option value="c_${cIdx}">${cCat} (${state.colVar})</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (type === "conditional") {
+        html = `
+          <div class="form-group">
+            <label for="select-event-target">Target Event of Interest (A):</label>
+            <select id="select-event-target">
+              ${events.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="select-event-given">Given Condition Event (B):</label>
+            <select id="select-event-given">
+              ${events.map(e => `<option value="${e.id}">${e.name}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }
+
+      elements.dynamicSelectors.innerHTML = html;
+
+      // Bind listener events
+      elements.dynamicSelectors.querySelectorAll('select').forEach(s => {
+        s.addEventListener('change', calculateProbability);
+      });
+
+      calculateProbability();
+    }
+
+    function clearHighlights() {
+      for (let r = 0; r < state.numRows; r++) {
+        for (let c = 0; c < state.numCols; c++) {
+          const el = document.getElementById(`cell-container-${r}-${c}`);
+          if (el) el.classList.remove('highlight-cell');
+        }
+      }
+    }
+
+    function highlightCells(cells) {
+      clearHighlights();
+      cells.forEach(([r, c]) => {
+        const el = document.getElementById(`cell-container-${r}-${c}`);
+        if (el) el.classList.add('highlight-cell');
+      });
+    }
+
+    // Compute Probability & Visual Highlight Logic
+    function calculateProbability() {
+      clearHighlights();
+
+      const grandTotal = parseInt(document.getElementById('grand-total').textContent, 10);
+      if (isNaN(grandTotal) || grandTotal === 0) {
+        elements.resultsContainer.style.display = "none";
+        return;
+      }
+
+      const type = elements.probType.value;
+      let formula = "";
+      let calculationText = "";
+      let finalVal = 0;
+      let title = "";
+      let description = "";
+
+      const getEventDetails = (id) => {
+        const parts = id.split('_');
+        const isRow = parts[0] === 'r';
+        const idx = parseInt(parts[1], 10);
+        const name = isRow ? state.rowCategories[idx] : state.colCategories[idx];
+        const cells = [];
+        let total = 0;
+
+        if (isRow) {
+          total = parseInt(document.getElementById(`total-row-${idx}`).textContent, 10);
+          for (let c = 0; c < state.numCols; c++) cells.push([idx, c]);
+        } else {
+          total = parseInt(document.getElementById(`total-col-${idx}`).textContent, 10);
+          for (let r = 0; r < state.numRows; r++) cells.push([r, idx]);
+        }
+        return { isRow, idx, name, total, cells };
+      };
+
+      if (type === "single") {
+        const eId = document.getElementById('select-event-1').value;
+        const ev = getEventDetails(eId);
+        highlightCells(ev.cells);
+
+        title = `Single Event Probability: P(${ev.name})`;
+        description = `Single event (marginal) probability is the total count of outcomes in event "${ev.name}" divided by total sample size (N).`;
+        formula = `P(${ev.name}) = Count(${ev.name}) / Total N`;
+        finalVal = ev.total / grandTotal;
+        calculationText = `P(${ev.name}) = ${ev.total} / ${grandTotal}`;
+      } 
+      else if (type === "intersection") {
+        const rIdx = parseInt(document.getElementById('select-event-row').value.split('_')[1], 10);
+        const cIdx = parseInt(document.getElementById('select-event-col').value.split('_')[1], 10);
+
+        const rowName = state.rowCategories[rIdx];
+        const colName = state.colCategories[cIdx];
+        const jointCount = state.matrix[rIdx][cIdx];
+
+        highlightCells([[rIdx, cIdx]]);
+
+        title = `Intersection Probability: P(${rowName} ∩ ${colName})`;
+        description = `Intersection (AND) represents the joint probability that BOTH events happen simultaneously.`;
+        formula = `P(${rowName} ∩ ${colName}) = Count(${rowName} and ${colName}) / Total N`;
+        finalVal = jointCount / grandTotal;
+        calculationText = `P(${rowName} ∩ ${colName}) = ${jointCount} / ${grandTotal}`;
+      }
+      else if (type === "union") {
+        const rIdx = parseInt(document.getElementById('select-event-row').value.split('_')[1], 10);
+        const cIdx = parseInt(document.getElementById('select-event-col').value.split('_')[1], 10);
+
+        const rowName = state.rowCategories[rIdx];
+        const colName = state.colCategories[cIdx];
+        const rowEv = getEventDetails(`r_${rIdx}`);
+        const colEv = getEventDetails(`c_${cIdx}`);
+        const jointCount = state.matrix[rIdx][cIdx];
+
+        const unionCellsSet = new Set();
+        rowEv.cells.forEach(([r,c]) => unionCellsSet.add(`${r},${c}`));
+        colEv.cells.forEach(([r,c]) => unionCellsSet.add(`${r},${c}`));
+        const unionCells = Array.from(unionCellsSet).map(s => s.split(',').map(Number));
+        
+        highlightCells(unionCells);
+
+        const sumCount = rowEv.total + colEv.total - jointCount;
+        finalVal = sumCount / grandTotal;
+
+        title = `Union Probability: P(${rowName} ∪ ${colName})`;
+        description = `Union (OR) represents the probability that AT LEAST ONE of the events occurs. Formula: P(A ∪ B) = P(A) + P(B) - P(A ∩ B).`;
+        formula = `P(${rowName} ∪ ${colName}) = [Count(${rowName}) + Count(${colName}) - Count(${rowName} ∩ ${colName})] / Total N`;
+        calculationText = `P(${rowName} ∪ ${colName}) = [${rowEv.total} + ${colEv.total} - ${jointCount}] / ${grandTotal} = ${sumCount} / ${grandTotal}`;
+      }
+      else if (type === "complement") {
+        const eId = document.getElementById('select-event-1').value;
+        const ev = getEventDetails(eId);
+        
+        const complementCells = [];
+        for (let r = 0; r < state.numRows; r++) {
+          for (let c = 0; c < state.numCols; c++) {
+            if (!ev.cells.some(([er, ec]) => er === r && ec === c)) {
+              complementCells.push([r, c]);
+            }
+          }
+        }
+        highlightCells(complementCells);
+
+        title = `Complement Probability: P(${ev.name}')`;
+        description = `Complement (NOT) represents the probability that event "${ev.name}" DOES NOT occur. Formula: P(E') = 1 - P(E).`;
+        const pE = ev.total / grandTotal;
+        finalVal = 1 - pE;
+
+        formula = `P(${ev.name}') = 1 - P(${ev.name})`;
+        calculationText = `P(${ev.name}') = 1 - (${ev.total} / ${grandTotal}) = 1 - ${pE.toFixed(4)}`;
+      }
+      else if (type === "conditional") {
+        const targetId = document.getElementById('select-event-target').value;
+        const givenId = document.getElementById('select-event-given').value;
+
+        if (targetId === givenId) {
+          elements.resultTitle.textContent = "Conditional Probability: P(A | B)";
+          elements.resultDescription.textContent = "The event of interest and given condition are identical.";
+          elements.resultFormula.textContent = "P(A | A) = 1";
+          elements.resultCalculation.textContent = "P(A | A) = 100%";
+          elements.resultFinal.textContent = "= 1.0000";
+          elements.resultsContainer.style.display = "block";
+          return;
+        }
+
+        const targetEv = getEventDetails(targetId);
+        const givenEv = getEventDetails(givenId);
+
+        let jointCount = 0;
+        targetEv.cells.forEach(([tr, tc]) => {
+          givenEv.cells.forEach(([gr, gc]) => {
+            if (tr === gr && tc === gc) {
+              jointCount = state.matrix[tr][tc];
+            }
+          });
+        });
+
+        highlightCells(givenEv.cells); // Highlight restricted sample space
+
+        title = `Conditional Probability: P(${targetEv.name} | ${givenEv.name})`;
+        description = `Conditional probability computes the likelihood of event "${targetEv.name}" occurring GIVEN THAT "${givenEv.name}" has occurred. Sample space is restricted to "${givenEv.name}".`;
+        formula = `P(${targetEv.name} | ${givenEv.name}) = Count(${targetEv.name} ∩ ${givenEv.name}) / Count(${givenEv.name})`;
+        
+        if (givenEv.total === 0) {
+          finalVal = 0;
+          calculationText = "Undefined (Given condition total count is 0)";
+        } else {
+          finalVal = jointCount / givenEv.total;
+          calculationText = `P(${targetEv.name} | ${givenEv.name}) = ${jointCount} / ${givenEv.total}`;
+        }
+      }
+
+      // Display Results
+      elements.resultTitle.textContent = title;
+      elements.resultDescription.textContent = description;
+      elements.resultFormula.textContent = formula;
+      elements.resultCalculation.textContent = calculationText;
+      
+      const percentage = (finalVal * 100).toFixed(2);
+      const decimalVal = finalVal.toFixed(4);
+      elements.resultFinal.textContent = `= ${decimalVal} (${percentage}%)`;
+      elements.resultsContainer.style.display = "block";
+
+      announce(`Computed ${title}. Value is ${decimalVal} or ${percentage} percent.`);
+    }
+
+    // Preset Data Handlers
+    function loadPreset2x2() {
+      elements.rowCountSelect.value = "2";
+      elements.colCountSelect.value = "2";
+      elements.varRowName.value = "Medical Condition";
+      elements.varColName.value = "Diagnostic Test";
+
+      state.rowVar = "Medical Condition";
+      state.colVar = "Diagnostic Test";
+      state.rowCategories = ["Disease Present", "Disease Absent"];
+      state.colCategories = ["Test Positive", "Test Negative"];
+      state.matrix = [
+        [85, 15],
+        [20, 780]
+      ];
+      state.numRows = 2;
+      state.numCols = 2;
+
+      syncUI();
+    }
+
+    function loadPreset3x3() {
+      elements.rowCountSelect.value = "3";
+      elements.colCountSelect.value = "3";
+      elements.varRowName.value = "Class Standing";
+      elements.varColName.value = "Preferred Mode";
+
+      state.rowVar = "Class Standing";
+      state.colVar = "Preferred Mode";
+      state.rowCategories = ["First Year", "Sophomore", "Upperclassman"];
+      state.colCategories = ["In-Person", "Hybrid", "Online"];
+      state.matrix = [
+        [50, 25, 15],
+        [40, 35, 20],
+        [30, 45, 60]
+      ];
+      state.numRows = 3;
+      state.numCols = 3;
+
+      syncUI();
+    }
+
+    function resetTable() {
+      const r = parseInt(elements.rowCountSelect.value, 10);
+      const c = parseInt(elements.colCountSelect.value, 10);
+      
+      state.rowVar = "Row Variable";
+      state.colVar = "Column Variable";
+      elements.varRowName.value = state.rowVar;
+      elements.varColName.value = state.colVar;
+
+      state.rowCategories = Array.from({length: r}, (_, i) => `Row Option ${i + 1}`);
+      state.colCategories = Array.from({length: c}, (_, i) => `Col Option ${i + 1}`);
+      
+      state.matrix = Array.from({length: r}, () => new Array(c).fill(0));
+      state.numRows = r;
+      state.numCols = c;
+
+      syncUI();
+    }
+
+    function syncUI() {
+      renderCategoryInputs();
+      renderTable();
+      renderProbabilitySelectors();
+      announce("Table state updated.");
+    }
+
+    // Application Initialization
+    function init() {
+      // Setup Dimension Selectors
+      elements.rowCountSelect.addEventListener('change', (e) => {
+        resizeMatrix(parseInt(e.target.value, 10), state.numCols);
+        syncUI();
+      });
+
+      elements.colCountSelect.addEventListener('change', (e) => {
+        resizeMatrix(state.numRows, parseInt(e.target.value, 10));
+        syncUI();
+      });
+
+      // Variable Name Listeners
+      elements.varRowName.addEventListener('input', (e) => {
+        state.rowVar = e.target.value.trim() || "Row Variable";
+        renderTable();
+        renderProbabilitySelectors();
+      });
+
+      elements.varColName.addEventListener('input', (e) => {
+        state.colVar = e.target.value.trim() || "Column Variable";
+        renderTable();
+        renderProbabilitySelectors();
+      });
+
+      // Probability Type Switch Listener
+      elements.probType.addEventListener('change', renderProbabilitySelectors);
+
+      // Presets
+      elements.btnPreset2x2.addEventListener('click', loadPreset2x2);
+      elements.btnPreset3x3.addEventListener('click', loadPreset3x3);
+      elements.btnReset.addEventListener('click', resetTable);
+
+      // Initial state startup
+      loadPreset2x2();
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
